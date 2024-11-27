@@ -50,6 +50,43 @@ def remove_task(tasks):
         print("Please enter a valid number.")
     return tasks
 
+# Edit a task
+def edit_task(tasks):
+    display_tasks(tasks)
+    try:
+        task_num = int(input("\nEnter the task number to edit: ")) - 1
+        if 0 <= task_num < len(tasks):
+            new_task = input("Enter the updated task: ")
+            if new_task.strip():
+                old_task = tasks[task_num]
+                tasks[task_num] = new_task
+                print(f"Task '{old_task}' updated to '{new_task}'.")
+            else:
+                print("Task cannot be empty.")
+        else:
+            print("Invalid task number.")
+    except ValueError:
+        print("Please enter a valid number.")
+    return tasks
+
+# Mark a task as complete or incomplete
+def toggle_task_status(tasks):
+    display_tasks(tasks)
+    try:
+        task_num = int(input("\nEnter the task number to mark as complete/incomplete: ")) - 1
+        if 0 <= task_num < len(tasks):
+            if tasks[task_num].startswith("[Done] "):
+                tasks[task_num] = tasks[task_num][7:]  # Remove "[Done] " prefix
+                print(f"Task '{tasks[task_num]}' marked as incomplete.")
+            else:
+                tasks[task_num] = f"[Done] {tasks[task_num]}"
+                print(f"Task '{tasks[task_num]}' marked as complete.")
+        else:
+            print("Invalid task number.")
+    except ValueError:
+        print("Please enter a valid number.")
+    return tasks
+
 # Main function to run the app
 def main():
     tasks = load_tasks()
@@ -59,7 +96,9 @@ def main():
         print("1. View tasks")
         print("2. Add task")
         print("3. Remove task")
-        print("4. Exit")
+        print("4. Edit task")
+        print("5. Mark task as complete/incomplete")
+        print("6. Exit")
 
         choice = input("\nChoose an option: ")
         if choice == "1":
@@ -71,6 +110,12 @@ def main():
             tasks = remove_task(tasks)
             save_tasks(tasks)
         elif choice == "4":
+            tasks = edit_task(tasks)
+            save_tasks(tasks)
+        elif choice == "5":
+            tasks = toggle_task_status(tasks)
+            save_tasks(tasks)
+        elif choice == "6":
             print("Exiting To-Do List application. Goodbye!")
             break
         else:
@@ -79,4 +124,3 @@ def main():
 # Run the app
 if __name__ == "__main__":
     main()
-
