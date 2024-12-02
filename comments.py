@@ -1,3 +1,11 @@
+import os
+
+TODO_FILE = "todo_list.txt"
+
+
+
+
+
 def load_tasks():
     """
     Loads tasks from a specified file if it exists.
@@ -19,3 +27,20 @@ def load_tasks():
     else:
         tasks = []  # Initialize an empty list if the file doesn't exist
     return tasks  # Return the list of tasks
+
+
+def save_tasks(tasks):
+    """
+    Saves a list of tasks to a file.
+
+    Args:
+        tasks (list): A list of task strings to be saved.
+
+    Process:
+    1. Opens the file specified by the TODO_FILE variable in write mode ('w').
+    2. Joins the tasks list into a single string with each task on a new line.
+    3. Writes the resulting string to the file, overwriting its contents.
+    4. Automatically closes the file when the 'with' block is exited.
+    """
+    with open(TODO_FILE, 'w') as file:
+        file.write("\n".join(tasks))
