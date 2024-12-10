@@ -70,3 +70,29 @@ def load_tasks():
                     due= parse_date(due_date_str)
                     return 0<=(due-datetime.date.today()).days<= days_ahead
                 return False
+            
+            def color_for_task(task):
+                if task["completed"]:
+                    return GREEN
+                if is_overdue(task):
+                    return RED
+                if task.get("priority", "MEDIUM") == "high":
+                    return YELLOW
+                return RESET
+            
+            def display_tasks(tasks, show_all=True, sort_by=None, filter_category=None, search_query=None):
+                filtered = tasks
+                if not show_all:
+                    filtered = [t for t in filtered if not t["completed"]]
+                if filter_category:
+                    filtered = [t for t in filtered if filter_category in t.get("categories", [])]
+                if search_query:
+                    filtered = [t for t in filtered if search_query.lower() in t["title"].lower()]
+                if sort_by == "due_date":
+                   filtered.sort(key=lambda t: t.get("due_date") or "9999-12-31")
+                elif sort_by == "priority":
+                   prio_order = {"High": 1, "Medium": 2, "Low": 3}
+                   filtered.sort(key=lambda t: prio_order.get(t.get("priority", "Medium"), 2))
+                elif sort_by == "category":
+                   filtered.sort(key=lambda t: (t.get("categories") or ["zzzz"]))
+                   
