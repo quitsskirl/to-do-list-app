@@ -43,4 +43,14 @@ def load_tasks():
             shutil.copyfile(TODO_FILE,BACKUP_FILE)
             with open(TODO_FILE, 'W') as f:
                 json.dump(tasks,f,indent=2)
-        
+
+    def load_archive():
+        if os.path.exists(ARCHIVE_FILE):
+            with open(ARCHIVE_FILE, 'r') as f:
+                return json.load(f)
+        else:
+            return[]
+
+    def save_archive(archived):
+        with open(ARCHIVE_FILE, 'w') as f:
+            json.dump(archived, f, indent=2)
