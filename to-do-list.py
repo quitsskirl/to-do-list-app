@@ -29,3 +29,18 @@ def load_config():
             "reminder_days_ahead": 1,
             "default_priority": "Medium"
         }
+    
+    config = load_config() 
+def load_tasks():         
+    if os.path.exists(TODO_FILE):
+        with open(TODO_FILE, 'r') as f:
+            return json.load(f)
+    else:
+        return[]
+    
+    def save_tasks(tasks):
+        if os.path.exists(TODO_FILE):
+            shutil.copyfile(TODO_FILE,BACKUP_FILE)
+            with open(TODO_FILE, 'W') as f:
+                json.dump(tasks,f,indent=2)
+        
