@@ -54,3 +54,19 @@ def load_tasks():
     def save_archive(archived):
         with open(ARCHIVE_FILE, 'w') as f:
             json.dump(archived, f, indent=2)
+
+            def parse_date(date_str):
+                return datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+            def is_overdue(task):
+                due_date_str = task.get("due_date")
+                if due_date_str:
+                    due = parse_date(due_date_str)
+                    return datetime.date.today() > due
+                return False
+            
+            def is_due_soon(task, days_ahead):
+                due_date_str=task.get("due_date")
+                if due_date_str:
+                    due= parse_date(due_date_str)
+                    return 0<=(due-datetime.date.today()).days<= days_ahead
+                return False
