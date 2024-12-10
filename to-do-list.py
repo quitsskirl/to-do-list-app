@@ -96,3 +96,16 @@ def load_tasks():
                 elif sort_by == "category":
                    filtered.sort(key=lambda t: (t.get("categories") or ["zzzz"]))
                    
+                   if not filtered:
+                       print("no tasks found.")
+                   else:
+                       print("\nTo-Do List:")
+                       for i, task in enumerate(filtered,1):
+                           c=color_for_task(task)
+                           status="[Done]"if task["completed"]else"[]"
+                           due_str= f"(Due:{task['due_date']})"if task.get("due_date") else""
+                           cat_str=f"(Categories:{','.join(task.get('categories',[]))})"if task.get('categories')else""
+                           prio_str=f"(Priority:{task.get('priority','Medium')})"
+                           recur_str=f"(Recurring:{task.get('recurring')})"if task.get('recurring')else""
+                           title=task["title"]
+                           print(f"{c}{i}.{status}{title}{due_str}{prio_str}{cat_str}{recur_str}{RESET}")
