@@ -16,3 +16,16 @@ GREEN = "\033[32m"
 YELLOW = "\033[33m"
 BLUE = "\033[34m"
 RESET = "\033[0m"
+
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    else:
+
+         return {
+            "default_recurring": None,
+            "reminder_days_ahead": 1,
+            "default_priority": "Medium"
+        }
