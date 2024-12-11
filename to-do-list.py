@@ -127,3 +127,22 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
     if categories is None:
         cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
         categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
+        
+def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, categories=None):
+    if not title:
+        title= input("enter a new task: ").strip()
+    if not title:
+         print("task cannot be empty.")
+         return tasks
+    if due_date is None:
+        due_date= input("enter due date (YYYY/MM/DD) or leave blank: ").strip()
+    if not due_date:
+        due_date=None
+    if priority is None:
+        priority= input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
+    if recurring is None:
+        recurring= input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank for one-time:").strip() or None
+    if categories is None:
+        cat_input= input("Enter categories (comma separated) or leave blank: ").strip()
+        categories= [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
+
