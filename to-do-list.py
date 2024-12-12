@@ -156,6 +156,40 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
             else:
                 print(f"Invalid task number:{idx+1}")
                 return tasks
+            
+    def edit_task(tasks):
+        display_tasks(tasks)
+        choice = input("\nEnter the task number(s) to edit (e.g. '1' or '1,2'): ").strip()
+        if not choice:
+            return tasks
+        indices = [int(x)-1 for x in choice.split(",") if x.strip().isdigit()]
+
+        for idx in indices:
+            if 0 <= idx < len(tasks):
+                task = tasks[idx]
+                print(f"Editing task '{task['title']}'")
+                new_title = input("Enter the updated task title (leave blank to keep current): ").strip()
+                if new_title:
+                    task["title"] = new_title
+                new_due = input("Enter new due date (YYYY-MM-DD) or blank to keep current: ").strip()
+                if new_due:
+                    task["due_date"] = new_due
+                new_prio = input("Enter new priority (High/Medium/Low) or blank to keep current: ").strip()
+                if new_prio:
+                    task["priority"] = new_prio
+                new_recur = input("Enter new recurring interval (daily/weekly/monthly/yearly) or blank for one-time: ").strip()
+                if new_recur == "":
+                    new_recur = None
+                task["recurring"] = new_recur
+                new_cat = input("Enter new categories (comma separated) or blank to keep current: ").strip()
+                if new_cat:
+                    task["categories"] = [c.strip() for c in new_cat.split(",") if c.strip()]
+                print(f"Task '{task['title']}' updated.")
+            else:
+                print(f"Invalid task number: {idx+1}")
+        return tasks
+
+      
     
 
         
