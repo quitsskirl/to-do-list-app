@@ -283,7 +283,42 @@ def export_tasks_to_csv(tasks, filename="tasks_export.csv"):
             writer.writerow(t)
             print(f"tasks exported to {filename}")
 
-def export_tasks_to_json(tasks, filename="tasks_exported.json"):
+def export_tasks_to_json(tasks, filename="tasks_export.json"):
     with open(filename, 'w') as f:
         json.dump(tasks, f, indent=2)
         print(f"tasks exported to {filename}")
+
+def show_report(tasks):
+    total = len(tasks)
+    completed = sum(t["completed"] for t in tasks)
+    overdue = sum(is_overdue(t) for t in tasks if not t["completed"])
+    print("Task Report:")
+    print(f"Total tasks: {total}")
+    print(f"Completed tasks: {completed}")
+    print(f"Overdue tasks: {overdue}")
+
+def remind_tasks(tasks):
+    days_ahead = config.get("reminder_days_ahead", 1)
+    soon = [t for t in tasks if not t["completed"] and is_due_soon(t, days_ahead)]
+    if soon:
+        print("\nreminder: the following tasks are due soon:")
+        for t in soon:
+            print(f"-{t['title']} (due:{t['due_date']})")
+
+def show_overdue_alerts(tasks):
+    overdue_tasks = [t for t in tasks if is_overdue(t) and not t["completed"]]
+    if overdue_tasks:
+        print(RED + "\nWARNING: You have overdue tasks!" + RESET)
+        for t in overdue_tasks:
+            print(f"- {t['title']} (Due: {t['due_date']})")
+
+def print_help():
+    print("Usage:")
+    print("  python todo.py [--help] [--add 'Task Title'] [--due 'YYYY-MM-DD'] [--priority PRIORITY]")
+    print("                 [--recurring INTERVAL] [--category CATEGORY] [--list] [--search QUERY]")
+    print("                 [--filter CATEGORY] [--sort SORT_BY] [--report] [--export CSV|JSON]")
+    print("\nOptions:")
+    print("  --help               Show this help message")
+    print("  --add 'Task Title'   Add a task with the given title")
+    print("  --due YYYY-MM-DD     Set due date for the added task")
+    print("  --priority PRIORITY  Set priority (High, Medium, Low) for the added task")
