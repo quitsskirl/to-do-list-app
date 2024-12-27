@@ -167,4 +167,3 @@ def remove_task(tasks):
         else:
             print(f"Invalid task number: {idx+1}")
     return tasks
-    
