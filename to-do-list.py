@@ -1,11 +1,9 @@
 from logging import config
 import os
 import json
-import sys
 import datetime
 import shutil
-import argparse
-import csv
+
 
 TODO_FILE = "todo_list.json"
 ARCHIVE_FILE = "archive_list.json"

@@ -44,3 +44,29 @@ def save_tasks(tasks):
     """
     with open(TODO_FILE, 'w') as file:
         file.write("\n".join(tasks))
+
+
+
+
+
+
+def display_tasks(tasks):
+    if not tasks:
+        print("\nNo tasks in your to-do list.")
+    else:
+        print("\nTo-Do List:")
+        for i, task in enumerate(tasks, 1):
+            print(f"{i}. {task}")
+
+
+
+# Function: display_tasks
+# Purpose: Displays the list of tasks in a formatted manner.
+# Parameters: 
+#   - tasks (list): A list of tasks to display.
+# Behavior:
+#   1. Checks if the list 'tasks' is empty.
+#      - If empty, prints a message indicating there are no tasks.
+#   2. If the list is not empty:
+#      - Prints a header "To-Do List:".
+#      - Iterates over the list of tasks using enumerate to display each task with its corresponding number.
