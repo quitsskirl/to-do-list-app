@@ -2,6 +2,9 @@ import os
 import json
 import datetime
 import shutil
+import csv
+import argparse
+import sys
 
 
 # Files
@@ -260,3 +263,27 @@ def archive_completed_tasks(tasks):
     save_archive(archived)
     print("completed tasks archieved.")
     return incompleted        
+def search_tasks(tasks):
+    query = input("enter search query: ").strip()
+    display_tasks(tasks, show_all=True, search_query=query)
+
+def filter_by_category(tasks):
+    cat=input("Enter category to filter: ").strip()
+    display_tasks(tasks, show_all=True, filter_category=cat)
+
+def toggle_view_incomplete(tasks):
+    display_tasks(tasks, show_all=False)
+
+def export_tasks_to_csv(tasks, filename="tasks_export.csv"):
+    with open(filename, 'W', newline='') as csvfile:
+        fieldname = ["title", "completed", "due_date", "priority", "recurring", "categories", "completion_timestamp0"]
+        writer = csv.Dictwriter(csvfile, fieldname=filename)
+        writer.writeheader()
+        for t in tasks:
+            writer.writerow(t)
+            print(f"tasks exported to {filename}")
+
+def export_tasks_to_json(tasks, filename="tasks_exported.json"):
+    with open(filename, 'w') as f:
+        json.dump(tasks, f, indent=2)
+        print(f"tasks exported to {filename}")
