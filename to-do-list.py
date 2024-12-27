@@ -199,3 +199,28 @@ def edit_task(tasks):
         else:
             print(f"Invalid task number: {idx+1}")
     return tasks
+def toggle_task_status(tasks):
+    display_tasks(tasks)
+    choice = input("\nEnter the task number(s) to toggle: ").strip()
+    if not choice:
+        return tasks
+    indices = [int(x)-1 for x in choice.split(",") if x.strip().isdigit()]
+
+    for idx in indices:
+        if 0 <= idx < len(tasks):
+            task = tasks[idx]
+            if task["completed"]:
+                task["completed"] = False
+                task["completion_timestamp"] = None
+                print(f"Task '{task['title']}' marked as incomplete.")
+            else:
+                task["completed"] = True
+                task["completion_timestamp"] = datetime.datetime.now().isoformat()
+                print(f"Task '{task['title']}' marked as complete.")
+                # If task is recurring and completed, add next occurrence
+                if task.get("recurring"):
+                    add_next_occurrence(tasks, task)
+        else:
+            print(f"Invalid task number: {idx+1}")
+    return tasks
+
