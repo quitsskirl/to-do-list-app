@@ -222,3 +222,41 @@ def toggle_task_status(tasks):
             print(f"Invalid task number: {idx+1}")
     return tasks
 
+def add_next_occurrence(tasks, completed_tasks):
+    if not completed_tasks.get("due_date"):
+        return #cant add next occurence without a due date
+    due = parse_date(completed_tasks["due_date"])
+    interval = completed_tasks["recurring"]
+    if interval == "daily":
+        next_due = due + datetime.timedelta(days=1)
+    elif interval == "weekly":
+        next_due = due + datetime.timedelta(weeks=1)
+    elif interval == "monthly":
+        next_due = due + datetime.timedelta(days=30)
+    elif interval == "yearly":
+        next_due = due + datetime.timedelta(days=365)
+    else:
+        return
+    new_task = {
+        "title": completed_tasks["title"],
+        "completed": False,
+        "due_date": next_due.strftime("%Y-%m-%d"),
+        "priority": completed_tasks.get("priority", "Medium"),
+        "recuriing": interval,
+        "categories": completed_tasks.get("categories",[]),
+        "completion_timestamp": None
+    }
+    tasks.append(new_task)
+    print(f"New recurring occurrence added for '{new_task['title']}' due on {new_task['due_date']}.")
+
+def archive_completed_tasks(tasks):
+    archived = load_archive()
+    incompleted = []
+    for t in tasks:
+        if t["completed"]:
+            archived.append(t)
+        else:
+            incompleted.append(t)
+    save_archive(archived)
+    print("completed tasks archieved.")
+    return incompleted        
