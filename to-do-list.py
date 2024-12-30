@@ -333,3 +333,47 @@ def print_help():
     print("  --export FORMAT      Export tasks to CSV or JSON")
     print("\nWithout arguments, interactive mode is used.")
 
+def parse_args(tasks):
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--help", action="store_true")
+    parser.add_argument("--add", type=str, default=None)
+    parser.add_argument("--due", type=str, default=None)
+    parser.add_argument("--priority", type=str, default=None)
+    parser.add_argument("--recurring", type=str, default=None)
+    parser.add_argument("--category", action='append', default=[])
+    parser.add_argument("--list", action="store_true")
+    parser.add_argument("--search", type=str, default=None)
+    parser.add_argument("--filter", type=str, default=None)
+    parser.add_argument("--sort", type=str, default=None)
+    parser.add_argument("--report", action="store_true")
+    parser.add_argument("--export", type=str, default=None)
+    args= parser.parse_args()
+    if args.help:
+        print_help()
+        sys.exit(0)
+    if args.add:
+        tasks = add_task(tasks, title=args.add, due_date=args.due, priority=args.priority,
+                         recurring=args.recurring, categories=args.category)
+        save_tasks(tasks)
+    if args.list:
+        display_tasks(tasks, show_all=True, sort_by=args.sort)
+    if args.search:
+        display_tasks(tasks, show_all=True, search_query=args.search, sort_by=args.sort)
+    if args.filter:
+        display_tasks(tasks, show_all=True, filter_category=args.filter, sort_by=args.sort)
+    if args.report:
+        show_report(tasks)
+    if args.export:
+        if args.export.lower() == "csv":
+            export_tasks_to_csv(tasks)
+        elif args.export.lower() == "json":
+            export_tasks_to_json(tasks)
+    if len(sys.argv) > 1:
+        sys.exit(0)
+    return tasks
+    
+
+
+
+
+
