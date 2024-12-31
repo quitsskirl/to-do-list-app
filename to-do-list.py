@@ -371,6 +371,78 @@ def parse_args(tasks):
     if len(sys.argv) > 1:
         sys.exit(0)
     return tasks
+
+def main():
+    tasks = load_tasks()
+    show_overdue_alerts(tasks)
+    remind_tasks(tasks)
+    tasks = archive_completed_tasks(tasks)
+
+    if len(sys.argv) > 1:
+        tasks = parse_args(tasks)
+        return
+
+    while True:
+        print("\nOptions:")
+        print("1. View tasks")
+        print("2. Add task")
+        print("3. Remove task")
+        print("4. Edit task")
+        print("5. Mark task as complete/incomplete")
+        print("6. Filter by category")
+        print("7. Search tasks")
+        print("8. Show only incomplete tasks")
+        print("9. Sort tasks (by due_date/priority/category)")
+        print("10. Show report")
+        print("11. Export tasks")
+        print("12. Archive completed tasks")
+        print("13. Exit")
+
+        choice = input("\nChoose an option: ").strip()
+
+        if choice == "1":
+            display_tasks(tasks, show_all=True)
+        elif choice == "2":
+            tasks = add_task(tasks)
+            save_tasks(tasks)
+        elif choice == "3":
+            tasks = remove_task(tasks)
+            save_tasks(tasks)
+        elif choice == "4":
+            tasks = edit_task(tasks)
+            save_tasks(tasks)
+        elif choice == "5":
+            tasks = toggle_task_status(tasks)
+            save_tasks(tasks)
+        elif choice == "6":
+            filter_by_category(tasks)
+        elif choice == "7":
+            search_tasks(tasks)
+        elif choice == "8":
+            toggle_view_incomplete(tasks)
+        elif choice == "9":
+            sort_option = input("Enter sort field (due_date/priority/category): ").strip()
+            display_tasks(tasks, show_all=True, sort_by=sort_option)
+        elif choice == "10":
+            show_report(tasks)
+        elif choice == "11":
+            fmt = input("Enter format (csv/json): ").strip().lower()
+            if fmt == "csv":
+                export_tasks_to_csv(tasks)
+            else:
+                export_tasks_to_json(tasks)
+        elif choice == "12":
+            tasks = archive_completed_tasks(tasks)
+            save_tasks(tasks)
+        elif choice == "13":
+            print("Exiting To-Do List application. Goodbye!")
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+
+if __name__ == "__main__":
+    main()
     
 
 
