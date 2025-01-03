@@ -47,6 +47,41 @@ def parse_args(tasks):
     save_tasks(tasks)
     return tasks
 
+def archive_completed_tasks(tasks):
+    """Move completed tasks to archive"""
+    archive = load_archive()
+    current_tasks = []
+    
+    for task in tasks:
+        if task.get("completed"):
+            task["completion_timestamp"] = datetime.now().isoformat()
+            archive.append(task)
+        else:
+            current_tasks.append(task)
+    
+    if len(tasks) != len(current_tasks):
+        save_archive(archive)
+        print(f"{BLUE}Archived {len(tasks) - len(current_tasks)} completed tasks{RESET}")
+    
+    return current_tasks
+
+def show_overdue_alerts(tasks):
+    """Show alerts for overdue tasks"""
+    overdue = [task for task in tasks if not task["completed"] and is_overdue(task)]
+    if overdue:
+        print(f"\n{RED}Overdue tasks:{RESET}")
+        for task in overdue:
+            print(f"- {task['title']} (Due: {task['due_date']})")
+
+def complete_task(tasks, task_id):
+    """Mark a task as completed by its ID"""
+    if 0 <= task_id < len(tasks):
+        tasks[task_id]["completed"] = True
+        print(f"{GREEN}Marked task '{tasks[task_id]['title']}' as completed{RESET}")
+        save_tasks(tasks)
+    else:
+        print(f"{RED}Invalid task ID{RESET}")
+
 def main():
     try:
         tasks = load_tasks()
@@ -65,6 +100,16 @@ def main():
     except Exception as e:
         print(f"{RED}A critical error occurred: {e}{RESET}")
         sys.exit(1)
+
+def remind_tasks(tasks):
+    """Remind about tasks due within the next few days"""
+    days_ahead = config.get('reminder_days', 3)  # Default to 3 days
+    due_soon = [task for task in tasks if is_due_soon(task, days_ahead)]
+    
+    if due_soon:
+        print(f"\n{YELLOW}Upcoming tasks in the next {days_ahead} days:{RESET}")
+        for task in due_soon:
+            print(f"- {task['title']} (Due: {task['due_date']})")
 
 if __name__ == "__main__":
     main()
