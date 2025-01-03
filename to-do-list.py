@@ -5,6 +5,7 @@ import shutil
 import csv
 import argparse
 import sys
+from datetime import datetime
 
 
 # Files
@@ -21,32 +22,45 @@ BLUE = "\033[34m"
 RESET = "\033[0m"
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
-    else:
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"{RED}Error loading config: {e}{RESET}")
         return {
             "default_recurring": None,
             "reminder_days_ahead": 1,
             "default_priority": "Medium"
         }
+    return {
+        "default_recurring": None,
+        "reminder_days_ahead": 1,
+        "default_priority": "Medium"
+    }
 
 config = load_config()
 
 def load_tasks():
-    if os.path.exists(TODO_FILE):
-        with open(TODO_FILE, 'r') as f:
-            return json.load(f)
-    else:
+    try:
+        if os.path.exists(TODO_FILE):
+            with open(TODO_FILE, 'r') as f:
+                return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"{RED}Error loading tasks: {e}{RESET}")
         return []
+    return []
 
 def save_tasks(tasks):
-    # Overwrite single backup file before saving
-    if os.path.exists(TODO_FILE):
-        shutil.copyfile(TODO_FILE, BACKUP_FILE)
+    try:
+        # Overwrite single backup file before saving
+        if os.path.exists(TODO_FILE):
+            shutil.copyfile(TODO_FILE, BACKUP_FILE)
 
-    with open(TODO_FILE, 'w') as f:
-        json.dump(tasks, f, indent=2)
+        with open(TODO_FILE, 'w') as f:
+            json.dump(tasks, f, indent=2)
+    except IOError as e:
+        print(f"{RED}Error saving tasks: {e}{RESET}")
 
 def load_archive():
     if os.path.exists(ARCHIVE_FILE):
@@ -60,9 +74,11 @@ def save_archive(archived):
         json.dump(archived, f, indent=2)
 
 def parse_date(date_str):
-    # Attempt to parse date in YYYY-MM-DD
-    # Could be extended if you have different formats
-    return datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print(f"{RED}Invalid date format. Please use YYYY-MM-DD{RESET}")
+        return None
 
 def is_overdue(task):
     due_date_str = task.get("due_date")
@@ -118,41 +134,69 @@ def display_tasks(tasks, show_all=True, sort_by=None, filter_category=None, sear
             title = task["title"]
             print(f"{c}{i}. {status} {title}{due_str}{prio_str}{cat_str}{recur_str}{RESET}")
 
+def validate_due_date(date_str):
+    try:
+        due_date = datetime.strptime(date_str, '%Y-%m-%d')
+        min_date = datetime.strptime('2025-01-01', '%Y-%m-%d')
+        
+        if due_date < min_date:
+            raise ValueError("Due date must be January 1st, 2025 or later")
+            
+        return date_str
+    except ValueError as e:
+        if "must be January 1st, 2025 or later" in str(e):
+            raise
+        raise ValueError("Invalid date format. Please use YYYY-MM-DD format")
+
 def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, categories=None):
-    if not title:
-        title = input("Enter a new task: ").strip()
-    if not title:
-        print("Task cannot be empty.")
+    try:
+        if not title:
+            title = input("Enter a new task: ").strip()
+        if not title:
+            print(f"{RED}Task cannot be empty.{RESET}")
+            return tasks
+
+        if due_date is None:
+            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+            if due_date:
+                try:
+                    validated_date = validate_due_date(due_date)
+                except ValueError as e:
+                    print(f"Error: {e}")
+                    return tasks
+                due_date = validated_date
+
+        if priority is None:
+            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip()
+            if priority and priority not in ["High", "Medium", "Low"]:
+                print(f"{RED}Invalid priority. Using default.{RESET}")
+                priority = config.get("default_priority", "Medium")
+
+        if recurring is None:
+            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank for one-time: ").strip()
+            if recurring and recurring not in ["daily", "weekly", "monthly", "yearly"]:
+                print(f"{RED}Invalid recurring interval. Setting to one-time.{RESET}")
+                recurring = None
+
+        if categories is None:
+            cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
+            categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
+
+        new_task = {
+            "title": title,
+            "completed": False,
+            "due_date": due_date,
+            "priority": priority,
+            "recurring": recurring,
+            "categories": categories,
+            "completion_timestamp": None
+        }
+        tasks.append(new_task)
+        print(f"{GREEN}Task '{title}' added.{RESET}")
         return tasks
-
-    if due_date is None:
-        due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
-        if not due_date:
-            due_date = None
-
-    if priority is None:
-        priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
-
-    if recurring is None:
-        # Clarifying that leaving blank means one-time
-        recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank for one-time: ").strip() or None
-
-    if categories is None:
-        cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
-        categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
-
-    new_task = {
-        "title": title,
-        "completed": False,
-        "due_date": due_date,
-        "priority": priority,
-        "recurring": recurring,
-        "categories": categories,
-        "completion_timestamp": None
-    }
-    tasks.append(new_task)
-    print(f"Task '{title}' added.")
-    return tasks
+    except Exception as e:
+        print(f"{RED}Error adding task: {e}{RESET}")
+        return tasks
 
 def remove_task(tasks):
     display_tasks(tasks)
@@ -275,18 +319,24 @@ def toggle_view_incomplete(tasks):
     display_tasks(tasks, show_all=False)
 
 def export_tasks_to_csv(tasks, filename="tasks_export.csv"):
-    with open(filename, 'W', newline='') as csvfile:
-        fieldname = ["title", "completed", "due_date", "priority", "recurring", "categories", "completion_timestamp0"]
-        writer = csv.Dictwriter(csvfile, fieldname=filename)
-        writer.writeheader()
-        for t in tasks:
-            writer.writerow(t)
-            print(f"tasks exported to {filename}")
+    try:
+        with open(filename, 'w', newline='') as csvfile:
+            fieldnames = ["title", "completed", "due_date", "priority", "recurring", "categories", "completion_timestamp"]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for t in tasks:
+                writer.writerow(t)
+        print(f"{GREEN}Tasks exported to {filename}{RESET}")
+    except IOError as e:
+        print(f"{RED}Error exporting to CSV: {e}{RESET}")
 
 def export_tasks_to_json(tasks, filename="tasks_export.json"):
-    with open(filename, 'w') as f:
-        json.dump(tasks, f, indent=2)
-        print(f"tasks exported to {filename}")
+    try:
+        with open(filename, 'w') as f:
+            json.dump(tasks, f, indent=2)
+        print(f"{GREEN}Tasks exported to {filename}{RESET}")
+    except IOError as e:
+        print(f"{RED}Error exporting to JSON: {e}{RESET}")
 
 def show_report(tasks):
     total = len(tasks)
@@ -373,72 +423,85 @@ def parse_args(tasks):
     return tasks
 
 def main():
-    tasks = load_tasks()
-    show_overdue_alerts(tasks)
-    remind_tasks(tasks)
-    tasks = archive_completed_tasks(tasks)
+    try:
+        tasks = load_tasks()
+        show_overdue_alerts(tasks)
+        remind_tasks(tasks)
+        tasks = archive_completed_tasks(tasks)
 
-    if len(sys.argv) > 1:
-        tasks = parse_args(tasks)
-        return
+        if len(sys.argv) > 1:
+            tasks = parse_args(tasks)
+            return
 
-    while True:
-        print("\nOptions:")
-        print("1. View tasks")
-        print("2. Add task")
-        print("3. Remove task")
-        print("4. Edit task")
-        print("5. Mark task as complete/incomplete")
-        print("6. Filter by category")
-        print("7. Search tasks")
-        print("8. Show only incomplete tasks")
-        print("9. Sort tasks (by due_date/priority/category)")
-        print("10. Show report")
-        print("11. Export tasks")
-        print("12. Archive completed tasks")
-        print("13. Exit")
+        while True:
+            try:
+                print("\nOptions:")
+                print("1. View tasks")
+                print("2. Add task")
+                print("3. Remove task")
+                print("4. Edit task")
+                print("5. Mark task as complete/incomplete")
+                print("6. Filter by category")
+                print("7. Search tasks")
+                print("8. Show only incomplete tasks")
+                print("9. Sort tasks (by due_date/priority/category)")
+                print("10. Show report")
+                print("11. Export tasks")
+                print("12. Archive completed tasks")
+                print("13. Exit")
 
-        choice = input("\nChoose an option: ").strip()
+                choice = input("\nChoose an option: ").strip()
 
-        if choice == "1":
-            display_tasks(tasks, show_all=True)
-        elif choice == "2":
-            tasks = add_task(tasks)
-            save_tasks(tasks)
-        elif choice == "3":
-            tasks = remove_task(tasks)
-            save_tasks(tasks)
-        elif choice == "4":
-            tasks = edit_task(tasks)
-            save_tasks(tasks)
-        elif choice == "5":
-            tasks = toggle_task_status(tasks)
-            save_tasks(tasks)
-        elif choice == "6":
-            filter_by_category(tasks)
-        elif choice == "7":
-            search_tasks(tasks)
-        elif choice == "8":
-            toggle_view_incomplete(tasks)
-        elif choice == "9":
-            sort_option = input("Enter sort field (due_date/priority/category): ").strip()
-            display_tasks(tasks, show_all=True, sort_by=sort_option)
-        elif choice == "10":
-            show_report(tasks)
-        elif choice == "11":
-            fmt = input("Enter format (csv/json): ").strip().lower()
-            if fmt == "csv":
-                export_tasks_to_csv(tasks)
-            else:
-                export_tasks_to_json(tasks)
-        elif choice == "12":
-            tasks = archive_completed_tasks(tasks)
-            save_tasks(tasks)
-        elif choice == "13":
-            print("Exiting To-Do List application. Goodbye!")
-            break
-        else:
-            print("Invalid option. Please try again.")
+                if choice == "1":
+                    display_tasks(tasks, show_all=True)
+                elif choice == "2":
+                    tasks = add_task(tasks)
+                    save_tasks(tasks)
+                elif choice == "3":
+                    tasks = remove_task(tasks)
+                    save_tasks(tasks)
+                elif choice == "4":
+                    tasks = edit_task(tasks)
+                    save_tasks(tasks)
+                elif choice == "5":
+                    tasks = toggle_task_status(tasks)
+                    save_tasks(tasks)
+                elif choice == "6":
+                    filter_by_category(tasks)
+                elif choice == "7":
+                    search_tasks(tasks)
+                elif choice == "8":
+                    toggle_view_incomplete(tasks)
+                elif choice == "9":
+                    sort_option = input("Enter sort field (due_date/priority/category): ").strip()
+                    display_tasks(tasks, show_all=True, sort_by=sort_option)
+                elif choice == "10":
+                    show_report(tasks)
+                elif choice == "11":
+                    fmt = input("Enter format (csv/json): ").strip().lower()
+                    if fmt == "csv":
+                        export_tasks_to_csv(tasks)
+                    else:
+                        export_tasks_to_json(tasks)
+                elif choice == "12":
+                    tasks = archive_completed_tasks(tasks)
+                    save_tasks(tasks)
+                elif choice == "13":
+                    print("Exiting To-Do List application. Goodbye!")
+                    break
+                else:
+                    print(f"{YELLOW}Invalid option. Please try again.{RESET}")
+            except KeyboardInterrupt:
+                print("\nOperation cancelled by user.")
+            except Exception as e:
+                print(f"{RED}An error occurred: {e}{RESET}")
+                print("Please try again.")
+
+    except KeyboardInterrupt:
+        print("\nExiting To-Do List application. Goodbye!")
+    except Exception as e:
+        print(f"{RED}A critical error occurred: {e}{RESET}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
