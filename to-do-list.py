@@ -84,33 +84,37 @@ def color_for_task(task):
     return RESET
 
 def display_tasks(tasks, show_all=True, sort_by=None, filter_category=None, search_query=None):
-    filtered = tasks
     if not show_all:
-        filtered = [t for t in filtered if not t["completed"]]
-    if filter_category:
-        filtered = [t for t in filtered if filter_category in t.get("categories", [])]
-    if search_query:
-        filtered = [t for t in filtered if search_query.lower() in t["title"].lower()]
+        # Filter out completed tasks
+        tasks = [task for task in tasks if not task["completed"]]
 
+    # Apply additional filters
+    if filter_category:
+        tasks = [task for task in tasks if filter_category in task.get("categories", [])]
+    if search_query:
+        tasks = [task for task in tasks if search_query.lower() in task["title"].lower()]
+
+    # Sort tasks
     if sort_by == "due_date":
-        filtered.sort(key=lambda t: t.get("due_date") or "9999-12-31")
+        tasks.sort(key=lambda t: t.get("due_date") or "9999-12-31")
     elif sort_by == "priority":
         prio_order = {"High": 1, "Medium": 2, "Low": 3}
-        filtered.sort(key=lambda t: prio_order.get(t.get("priority", "Medium"), 2))
+        tasks.sort(key=lambda t: prio_order.get(t.get("priority", "Medium"), 2))
     elif sort_by == "category":
-        filtered.sort(key=lambda t: (t.get("categories") or ["zzzz"]))
+        tasks.sort(key=lambda t: (t.get("categories") or ["zzzz"]))
 
-    if not filtered:
+    # Display tasks
+    if not tasks:
         print("No tasks found.")
     else:
         print("\nTo-Do List:")
-        for i, task in enumerate(filtered, 1):
+        for i, task in enumerate(tasks, 1):
             c = color_for_task(task)
             status = "[Done]" if task["completed"] else "[ ]"
             due_str = f" (Due: {task['due_date']})" if task.get("due_date") else ""
-            cat_str = f" (Categories: {', '.join(task.get('categories', []))})" if task.get('categories') else ""
+            cat_str = f" (Categories: {', '.join(task.get('categories', []))})" if task.get("categories") else ""
             prio_str = f" (Priority: {task.get('priority', 'Medium')})"
-            recur_str = f" (Recurring: {task.get('recurring')})" if task.get('recurring') else ""
+            recur_str = f" (Recurring: {task.get('recurring')})" if task.get("recurring") else ""
             title = task["title"]
             print(f"{c}{i}. {status} {title}{due_str}{prio_str}{cat_str}{recur_str}{RESET}")
 
@@ -292,14 +296,15 @@ def archive_completed_tasks(tasks):
 
 def display_completed_tasks(tasks):
     print("\nCompleted Tasks:")
-    has_completed_tasks = False
-    for task in tasks:
-        if task["completed"]:
-            has_completed_tasks = True
-            timestamp = task.get("completion_timestamp", "N/A")
-            print(f"Task: {task['title']} | Completed On: {timestamp}")
-    if not has_completed_tasks:
+    completed = [t for t in tasks if t["completed"]]
+    if not completed:
         print("No completed tasks found.")
+    else:
+        for i, task in enumerate(completed, 1):
+            c = GREEN
+            title = task["title"]
+            timestamp = f" (Completed On: {task.get('completion_timestamp', 'N/A')})"
+            print(f"{c}{i}. {title}{timestamp}{RESET}")
 
 def search_tasks(tasks):
     query = input("Enter search query: ").strip()
@@ -432,7 +437,7 @@ def main():
 
     while True:
         print("\nOptions:")
-        print("1. View tasks")
+        print("1. View tasks(incomplete tasks only)")
         print("2. Add task")
         print("3. Remove task")
         print("4. Edit task")
@@ -450,7 +455,7 @@ def main():
         choice = input("\nChoose an option: ").strip()
 
         if choice == "1":
-            display_tasks(tasks, show_all=True)
+            display_tasks(tasks, show_all=False)
         elif choice == "2":
             tasks = add_task(tasks)
             save_tasks(tasks)
