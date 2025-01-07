@@ -118,40 +118,48 @@ def display_tasks(tasks, show_all=True, sort_by=None, filter_category=None, sear
             print(f"{c}{i}. {status} {title}{due_str}{prio_str}{cat_str}{recur_str}{RESET}")
 
 def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, categories=None):
-    if not title:
-        title = input("Enter a new task: ").strip()
-    if not title:
-        print("Task cannot be empty.")
+    while True:
+        if not title:
+            title = input("Enter a new task (max 60 characters): ").strip()
+            
+        if len(title) > 60:
+            print(RED + "Error: Task description exceeds 60 characters. Please try again." + RESET)
+            title = None  
+            continue 
+
+        if not title:
+            print(RED + "Task cannot be empty. Please try again." + RESET)
+            continue
+
+        if due_date is None:
+            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+            if not due_date:
+                due_date = None
+
+        if priority is None:
+            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
+
+        if recurring is None:
+            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip() or None
+
+        if categories is None:
+            cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
+            categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
+
+        
+        new_task = {
+            "title": title,
+            "completed": False,
+            "due_date": due_date,
+            "priority": priority,
+            "recurring": recurring,
+            "categories": categories,
+            "completion_timestamp": None
+        }
+        tasks.append(new_task)
+        print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
 
-    if due_date is None:
-        due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
-        if not due_date:
-            due_date = None
-
-    if priority is None:
-        priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
-
-    if recurring is None:
-        # Clarifying that leaving blank means one-time
-        recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank for one-time: ").strip() or None
-
-    if categories is None:
-        cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
-        categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
-
-    new_task = {
-        "title": title,
-        "completed": False,
-        "due_date": due_date,
-        "priority": priority,
-        "recurring": recurring,
-        "categories": categories,
-        "completion_timestamp": None
-    }
-    tasks.append(new_task)
-    print(f"Task '{title}' added.")
-    return tasks
 
 def remove_task(tasks):
     display_tasks(tasks)
