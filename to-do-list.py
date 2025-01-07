@@ -5,14 +5,11 @@ import datetime
 import shutil
 import argparse
 import csv
-
-# Files
+START_DATE = datetime.date(2025, 1, 1)
 TODO_FILE = "todo_list.json"
 ARCHIVE_FILE = "archive_list.json"
 CONFIG_FILE = "config.json"
 BACKUP_FILE = "todo_list_backup.json"
-
-# ANSI color codes for better readability
 RED = "\033[31m"
 GREEN = "\033[32m"
 YELLOW = "\033[33m"
@@ -121,20 +118,37 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
     while True:
         if not title:
             title = input("Enter a new task (max 60 characters): ").strip()
-            
+
+        # Character limit check (60 characters max)
         if len(title) > 60:
             print(RED + "Error: Task description exceeds 60 characters. Please try again." + RESET)
-            title = None  
-            continue 
+            title = None  # Reset title to force the loop to continue
+            continue  # Retry entering the task
 
         if not title:
             print(RED + "Task cannot be empty. Please try again." + RESET)
             continue
 
-        if due_date is None:
-            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
-            if not due_date:
-                due_date = None
+        while True:  # Loop to ensure due date validation
+            if due_date is None:
+                due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+            if due_date:
+                if not is_valid_date(due_date):
+                    print(RED + f"Error: Date cannot be before {START_DATE.strftime('%Y-%m-%d')}." + RESET)
+                    retry = input("Would you like to try again? (yes/no): ").strip().lower()
+                    if retry == "no":
+                        print(RED + "Exiting the program. Please try again later." + RESET)
+                        sys.exit(1)  # Exit the program
+                    elif retry == "yes":
+                        due_date = None  # Reset due_date to force retry
+                        continue  # Retry entering the due date
+                    else:
+                        print(RED + "Invalid input. Please type 'yes' or 'no'." + RESET)
+                        continue  # Loop back to ask the retry question again
+                else:
+                    break  # Exit due date loop if valid
+            else:
+                break  # Allow blank due date
 
         if priority is None:
             priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
@@ -146,7 +160,6 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
             cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
             categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
 
-        
         new_task = {
             "title": title,
             "completed": False,
@@ -159,6 +172,10 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         tasks.append(new_task)
         print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
+
+
+
+
 
 
 def remove_task(tasks):
@@ -175,38 +192,50 @@ def remove_task(tasks):
         else:
             print(f"Invalid task number: {idx+1}")
     return tasks
+def is_valid_date(date_str):
+    """
+    Validate that the provided date is not before the START_DATE (01-01-2025).
+    """
+    try:
+        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        if date < START_DATE:
+            return False
+        return True
+    except ValueError:
+        return False
 
 def edit_task(tasks):
     display_tasks(tasks)
-    choice = input("\nEnter the task number(s) to edit (e.g. '1' or '1,2'): ").strip()
-    if not choice:
+    choice = input("\nEnter the task number to edit: ").strip()
+    if not choice.isdigit() or int(choice) - 1 not in range(len(tasks)):
+        print(RED + "Invalid task number." + RESET)
         return tasks
-    indices = [int(x)-1 for x in choice.split(",") if x.strip().isdigit()]
 
-    for idx in indices:
-        if 0 <= idx < len(tasks):
-            task = tasks[idx]
-            print(f"Editing task '{task['title']}'")
-            new_title = input("Enter the updated task title (leave blank to keep current): ").strip()
-            if new_title:
-                task["title"] = new_title
-            new_due = input("Enter new due date (YYYY-MM-DD) or blank to keep current: ").strip()
-            if new_due:
-                task["due_date"] = new_due
-            new_prio = input("Enter new priority (High/Medium/Low) or blank to keep current: ").strip()
-            if new_prio:
-                task["priority"] = new_prio
-            new_recur = input("Enter new recurring interval (daily/weekly/monthly/yearly) or blank for one-time: ").strip()
-            if new_recur == "":
-                new_recur = None
-            task["recurring"] = new_recur
-            new_cat = input("Enter new categories (comma separated) or blank to keep current: ").strip()
-            if new_cat:
-                task["categories"] = [c.strip() for c in new_cat.split(",") if c.strip()]
-            print(f"Task '{task['title']}' updated.")
-        else:
-            print(f"Invalid task number: {idx+1}")
+    idx = int(choice) - 1
+    task = tasks[idx]
+
+    print(f"Editing task '{task['title']}'")
+    new_title = input("Enter updated title (leave blank to keep current): ").strip()
+    if new_title:
+        if len(new_title) > 60:
+            print(RED + "Error: Task description exceeds 60 characters. Update canceled." + RESET)
+            return tasks
+        task["title"] = new_title
+
+    new_due = input("Enter updated due date (YYYY-MM-DD) or blank to keep current: ").strip()
+    if new_due:
+        if not is_valid_date(new_due):
+            print(RED + f"Error: Date cannot be before {START_DATE.strftime('%Y-%m-%d')}. Update canceled." + RESET)
+            return tasks
+        task["due_date"] = new_due
+
+    new_priority = input("Enter updated priority (High/Medium/Low) or blank to keep current: ").strip()
+    if new_priority:
+        task["priority"] = new_priority
+
+    print(GREEN + f"Task '{task['title']}' updated successfully." + RESET)
     return tasks
+
 
 def toggle_task_status(tasks):
     display_tasks(tasks)
