@@ -119,46 +119,29 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         if not title:
             title = input("Enter a new task (max 60 characters): ").strip()
 
-        # Character limit check (60 characters max)
         if len(title) > 60:
             print(RED + "Error: Task description exceeds 60 characters. Please try again." + RESET)
-            title = None  # Reset title to force the loop to continue
-            continue  # Retry entering the task
-
-        if not title:
-            print(RED + "Task cannot be empty. Please try again." + RESET)
             continue
 
-        while True:  # Loop to ensure due date validation
-            if due_date is None:
-                due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
-            if due_date:
-                if not is_valid_date(due_date):
-                    print(RED + f"Error: Date cannot be before {START_DATE.strftime('%Y-%m-%d')}." + RESET)
-                    retry = input("Would you like to try again? (yes/no): ").strip().lower()
-                    if retry == "no":
-                        print(RED + "Exiting the program. Please try again later." + RESET)
-                        sys.exit(1)  # Exit the program
-                    elif retry == "yes":
-                        due_date = None  # Reset due_date to force retry
-                        continue  # Retry entering the due date
-                    else:
-                        print(RED + "Invalid input. Please type 'yes' or 'no'." + RESET)
-                        continue  # Loop back to ask the retry question again
-                else:
-                    break  # Exit due date loop if valid
-            else:
-                break  # Allow blank due date
+        if due_date is None:
+            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+            if due_date and not is_valid_date(due_date):
+                print(RED + "Invalid date. Please enter a valid date in YYYY-MM-DD format." + RESET)
+                continue
 
         if priority is None:
-            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
+            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or "Medium"
 
         if recurring is None:
-            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip() or None
+            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip().lower()
+            if recurring not in ["", "daily", "weekly", "monthly", "yearly"]:
+                print(RED + "Invalid recurring interval. Please enter daily, weekly, monthly, yearly, or leave blank." + RESET)
+                recurring = None
+                continue
 
         if categories is None:
-            cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
-            categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
+            categories = input("Enter categories (comma separated) or leave blank: ").strip().split(",")
+            categories = [c.strip() for c in categories if c.strip()]
 
         new_task = {
             "title": title,
@@ -172,11 +155,6 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         tasks.append(new_task)
         print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
-
-
-
-
-
 
 def remove_task(tasks):
     display_tasks(tasks)
@@ -238,24 +216,28 @@ def edit_task(tasks):
 
 
 def toggle_task_status(tasks):
-    display_tasks(tasks)
+    display_tasks(tasks)  # Display all tasks for user to choose from
     choice = input("\nEnter the task number(s) to toggle: ").strip()
     if not choice:
         return tasks
-    indices = [int(x)-1 for x in choice.split(",") if x.strip().isdigit()]
+
+    indices = [int(x) - 1 for x in choice.split(",") if x.strip().isdigit()]
 
     for idx in indices:
         if 0 <= idx < len(tasks):
             task = tasks[idx]
             if task["completed"]:
+                # Mark as incomplete and remove timestamp
                 task["completed"] = False
                 task["completion_timestamp"] = None
                 print(f"Task '{task['title']}' marked as incomplete.")
             else:
+                # Mark as complete and set timestamp
                 task["completed"] = True
-                task["completion_timestamp"] = datetime.datetime.now().isoformat()
-                print(f"Task '{task['title']}' marked as complete.")
-                # If task is recurring and completed, add next occurrence
+                task["completion_timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(f"Task '{task['title']}' marked as complete. Completion time: {task['completion_timestamp']}")
+                
+                # Add next occurrence for recurring tasks
                 if task.get("recurring"):
                     add_next_occurrence(tasks, task)
         else:
@@ -263,29 +245,31 @@ def toggle_task_status(tasks):
     return tasks
 
 def add_next_occurrence(tasks, completed_task):
-    # Generate next occurrence based on recurring interval
     if not completed_task.get("due_date"):
-        return  # can't add next occurrence without a due date
-
-    due = parse_date(completed_task["due_date"])
-    interval = completed_task["recurring"]
-    if interval == "daily":
-        next_due = due + datetime.timedelta(days=1)
-    elif interval == "weekly":
-        next_due = due + datetime.timedelta(weeks=1)
-    elif interval == "monthly":
-        # approximate monthly as 30 days
-        next_due = due + datetime.timedelta(days=30)
-    elif interval == "yearly":
-        # approximate yearly as 365 days
-        next_due = due + datetime.timedelta(days=365)
-    else:
+        print("Cannot add next occurrence without a due date.")
         return
 
+    # Calculate the next due date
+    current_due_date = datetime.datetime.strptime(completed_task["due_date"], "%Y-%m-%d").date()
+    interval = completed_task.get("recurring")
+
+    if interval == "daily":
+        next_due_date = current_due_date + datetime.timedelta(days=1)
+    elif interval == "weekly":
+        next_due_date = current_due_date + datetime.timedelta(weeks=1)
+    elif interval == "monthly":
+        next_due_date = current_due_date + datetime.timedelta(days=30)  # Approximate 30-day months
+    elif interval == "yearly":
+        next_due_date = current_due_date + datetime.timedelta(days=365)
+    else:
+        print("Invalid recurring interval.")
+        return
+
+    # Add the next occurrence as a new task
     new_task = {
         "title": completed_task["title"],
         "completed": False,
-        "due_date": next_due.strftime("%Y-%m-%d"),
+        "due_date": next_due_date.strftime("%Y-%m-%d"),
         "priority": completed_task.get("priority", "Medium"),
         "recurring": interval,
         "categories": completed_task.get("categories", []),
@@ -305,6 +289,17 @@ def archive_completed_tasks(tasks):
     save_archive(archived)
     print("Completed tasks archived.")
     return incompleted
+
+def display_completed_tasks(tasks):
+    print("\nCompleted Tasks:")
+    has_completed_tasks = False
+    for task in tasks:
+        if task["completed"]:
+            has_completed_tasks = True
+            timestamp = task.get("completion_timestamp", "N/A")
+            print(f"Task: {task['title']} | Completed On: {timestamp}")
+    if not has_completed_tasks:
+        print("No completed tasks found.")
 
 def search_tasks(tasks):
     query = input("Enter search query: ").strip()
@@ -449,7 +444,8 @@ def main():
         print("10. Show report")
         print("11. Export tasks")
         print("12. Archive completed tasks")
-        print("13. Exit")
+        print("13. Display completed tasks")
+        print("14. Exit")
 
         choice = input("\nChoose an option: ").strip()
 
@@ -488,6 +484,8 @@ def main():
             tasks = archive_completed_tasks(tasks)
             save_tasks(tasks)
         elif choice == "13":
+            display_completed_tasks(tasks)
+        elif choice == "14":
             print("Exiting To-Do List application. Goodbye!")
             break
         else:

@@ -1,0 +1,24 @@
+[
+  {
+    "title": "gym",
+    "completed": true,
+    "due_date": "2025-01-09",
+    "priority": "Medium",
+    "recurring": "daily",
+    "categories": [
+      "workout"
+    ],
+    "completion_timestamp": "2025-01-08 00:39:39"
+  },
+  {
+    "title": "gym",
+    "completed": false,
+    "due_date": "2025-01-10",
+    "priority": "Medium",
+    "recurring": "daily",
+    "categories": [
+      "workout"
+    ],
+    "completion_timestamp": null
+  }
+]
