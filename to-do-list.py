@@ -123,29 +123,46 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         if not title:
             title = input("Enter a new task (max 60 characters): ").strip()
 
+        # Character limit check (60 characters max)
         if len(title) > 60:
             print(RED + "Error: Task description exceeds 60 characters. Please try again." + RESET)
             continue
 
-        if due_date is None:
-            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
-            if due_date and not is_valid_date(due_date):
-                print(RED + "Invalid date. Please enter a valid date in YYYY-MM-DD format." + RESET)
-                continue
+        if not title:
+            print(RED + "Task cannot be empty. Please try again." + RESET)
+            continue
+
+        # Date validation loop
+        while True:
+            if due_date is None:
+                due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+            if due_date:
+                if not is_valid_date(due_date):
+                    print(RED + f"Error: Date cannot be before {START_DATE.strftime('%Y-%m-%d')}." + RESET)
+                    retry = input("Would you like to try again? (yes/no): ").strip().lower()
+                    if retry == "yes":
+                        due_date = None  # Reset due_date for retry
+                        continue  # Retry entering the due date
+                    elif retry == "no":
+                        print(RED + "Exiting the program. Please try again later." + RESET)
+                        sys.exit(1)  # Exit the program
+                    else:
+                        print(RED + "Invalid input. Please type 'yes' or 'no'." + RESET)
+                        continue  # Loop back to retry input
+                else:
+                    break  # Exit date loop if valid
+            else:
+                break  # Allow blank due date
 
         if priority is None:
-            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or "Medium"
+            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or config.get("default_priority", "Medium")
 
         if recurring is None:
-            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip().lower()
-            if recurring not in ["", "daily", "weekly", "monthly", "yearly"]:
-                print(RED + "Invalid recurring interval. Please enter daily, weekly, monthly, yearly, or leave blank." + RESET)
-                recurring = None
-                continue
+            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip() or None
 
         if categories is None:
-            categories = input("Enter categories (comma separated) or leave blank: ").strip().split(",")
-            categories = [c.strip() for c in categories if c.strip()]
+            cat_input = input("Enter categories (comma separated) or leave blank: ").strip()
+            categories = [c.strip() for c in cat_input.split(",") if c.strip()] if cat_input else []
 
         new_task = {
             "title": title,
@@ -159,6 +176,7 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         tasks.append(new_task)
         print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
+
 
 def remove_task(tasks):
     display_tasks(tasks)
@@ -436,65 +454,79 @@ def main():
         return
 
     while True:
-        print("\nOptions:")
-        print("1. View tasks(incomplete tasks only)")
-        print("2. Add task")
-        print("3. Remove task")
-        print("4. Edit task")
-        print("5. Mark task as complete/incomplete")
-        print("6. Filter by category")
-        print("7. Search tasks")
-        print("8. Show only incomplete tasks")
-        print("9. Sort tasks (by due_date/priority/category)")
-        print("10. Show report")
-        print("11. Export tasks")
-        print("12. Archive completed tasks")
-        print("13. Display completed tasks")
-        print("14. Exit")
-
-        choice = input("\nChoose an option: ").strip()
-
-        if choice == "1":
-            display_tasks(tasks, show_all=False)
-        elif choice == "2":
-            tasks = add_task(tasks)
-            save_tasks(tasks)
-        elif choice == "3":
-            tasks = remove_task(tasks)
-            save_tasks(tasks)
-        elif choice == "4":
-            tasks = edit_task(tasks)
-            save_tasks(tasks)
-        elif choice == "5":
-            tasks = toggle_task_status(tasks)
-            save_tasks(tasks)
-        elif choice == "6":
-            filter_by_category(tasks)
-        elif choice == "7":
-            search_tasks(tasks)
-        elif choice == "8":
-            toggle_view_incomplete(tasks)
-        elif choice == "9":
-            sort_option = input("Enter sort field (due_date/priority/category): ").strip()
-            display_tasks(tasks, show_all=True, sort_by=sort_option)
-        elif choice == "10":
-            show_report(tasks)
-        elif choice == "11":
-            fmt = input("Enter format (csv/json): ").strip().lower()
-            if fmt == "csv":
-                export_tasks_to_csv(tasks)
-            else:
-                export_tasks_to_json(tasks)
-        elif choice == "12":
-            tasks = archive_completed_tasks(tasks)
-            save_tasks(tasks)
-        elif choice == "13":
-            display_completed_tasks(tasks)
-        elif choice == "14":
-            print("Exiting To-Do List application. Goodbye!")
-            break
+        if tasks:
+             print("\nOptions:")
+             print("1. View tasks(incomplete tasks only)")
+             print("2. Add task")
+             print("3. Remove task")
+             print("4. Edit task")
+             print("5. Mark task as complete/incomplete")
+             print("6. Filter by category")
+             print("7. Search tasks")
+             print("8. Show only incomplete tasks")
+             print("9. Sort tasks (by due_date/priority/category)")
+             print("10. Show report")
+             print("11. Export tasks")
+             print("12. Archive completed tasks")
+             print("13. Display completed tasks")
+             print("14. Exit")
         else:
-            print("Invalid option. Please try again.")
+            print("\nOptions:")
+            print("1. Add task")
+            print("2. Exit")
+        choice = input("\nChoose an option: ").strip()
+        if not tasks:
+            # Limited options when no tasks are present
+            if choice == "1":
+                tasks = add_task(tasks)
+                save_tasks(tasks)
+            elif choice == "2":
+                print("Exiting program. Goodbye!")
+                break
+            else:
+                print("Invalid option. Please try again.")
+        else:
+            if choice == "1":
+                display_tasks(tasks, show_all=False)
+            elif choice == "2":
+                tasks = add_task(tasks)
+                save_tasks(tasks)
+            elif choice == "3":
+                tasks = remove_task(tasks)
+                save_tasks(tasks)
+            elif choice == "4":
+                tasks = edit_task(tasks)
+                save_tasks(tasks)
+            elif choice == "5":
+                tasks = toggle_task_status(tasks)
+                save_tasks(tasks)
+            elif choice == "6":
+                filter_by_category(tasks)
+            elif choice == "7":
+                search_tasks(tasks)
+            elif choice == "8":
+                toggle_view_incomplete(tasks)
+            elif choice == "9":
+                sort_option = input("Enter sort field (due_date/priority/category): ").strip()
+                display_tasks(tasks, show_all=True, sort_by=sort_option)
+            elif choice == "10":
+                show_report(tasks)
+            elif choice == "11":
+                fmt = input("Enter format (csv/json): ").strip().lower()
+                if fmt == "csv":
+                    export_tasks_to_csv(tasks)
+                else:
+                    export_tasks_to_json(tasks)
+            elif choice == "12":
+                tasks = archive_completed_tasks(tasks)
+                save_tasks(tasks)
+            elif choice == "13":
+                display_completed_tasks(tasks)
+            elif choice == "14":
+                print("Exiting To-Do List application. Goodbye!")
+                break
+            else:
+                print("Invalid option. Please try again.")
 
 
 if __name__ == "__main__":
