@@ -176,11 +176,23 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
             else:
                 break  # Allow blank due date
 
-        if priority is None:
-            priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or "Medium"
+        # Priority validation
+        allowed_priorities = ["High", "Medium", "Low", ""]
+        while priority not in allowed_priorities:
+            if priority is None:
+                priority = input("Enter priority (High/Medium/Low or leave blank): ").strip()
+            if priority not in allowed_priorities:
+                print(RED + "Error: Invalid priority. Please choose 'High', 'Medium', 'Low', or leave it blank." + RESET)
+                priority = None  # Force re-entry
 
-        if recurring is None:
-            recurring = input("Enter recurring interval (daily/weekly/monthly/yearly) or leave blank: ").strip() or None
+        # Recurring validation
+        allowed_recurring = ["daily", "weekly", "monthly", "yearly", ""]
+        while recurring not in allowed_recurring:
+            if recurring is None:
+                recurring = input("Enter recurring interval (daily/weekly/monthly/yearly or leave blank): ").strip()
+            if recurring not in allowed_recurring:
+                print(RED + "Error: Invalid recurring interval. Please choose 'daily', 'weekly', 'monthly', 'yearly', or leave it blank." + RESET)
+                recurring = None  # Force re-entry
 
         # Display categories and allow selection
         display_categories(categories)
@@ -195,14 +207,15 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
             "title": title,
             "completed": False,
             "due_date": due_date,
-            "priority": priority,
-            "recurring": recurring,
+            "priority": priority or "Medium",  # Default to Medium
+            "recurring": recurring or None,  # Default to None
             "categories": selected_categories,
             "completion_timestamp": None
         }
         tasks.append(new_task)
         print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
+
 
 def remove_task(tasks):
     display_tasks(tasks)
