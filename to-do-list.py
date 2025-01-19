@@ -147,18 +147,34 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
         if not title:
             title = input("Enter a new task (max 60 characters): ").strip()
 
+        # Check if the task exceeds 60 characters
         if len(title) > 60:
-            print("Error: Task description exceeds 60 characters. Please try again.")
+            print(RED + "Error: Task description exceeds 60 characters. Please try again." + RESET)
+            title = None  # Reset title to force re-entry
             continue
 
-        # Validate due date
-        if due_date is None:
-            due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
+        if not title:
+            print(RED + "Task cannot be empty. Please try again." + RESET)
+            continue
+
+        # Date validation
+        while True:
+            if due_date is None:
+                due_date = input("Enter due date (YYYY-MM-DD) or leave blank: ").strip()
             if due_date:
-                if parse_date(due_date) is None:
-                    print("Invalid date format. Please enter a valid date in YYYY-MM-DD format.")
+                try:
+                    parsed_date = datetime.datetime.strptime(due_date, "%Y-%m-%d").date()
+                    if parsed_date < datetime.date(2025, 1, 1):
+                        print(RED + f"Error: Date cannot be before 2025-01-01. Please try again." + RESET)
+                        due_date = None  # Reset due_date to retry
+                        continue
+                    break  # Valid date
+                except ValueError:
+                    print(RED + "Error: Invalid date format. Please enter a valid date in YYYY-MM-DD format." + RESET)
                     due_date = None  # Reset due_date to retry
                     continue
+            else:
+                break  # Allow blank due date
 
         if priority is None:
             priority = input("Enter priority (High/Medium/Low) or leave blank: ").strip() or "Medium"
@@ -185,12 +201,8 @@ def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, ca
             "completion_timestamp": None
         }
         tasks.append(new_task)
-        print(f"Task '{title}' added successfully.")
+        print(GREEN + f"Task '{title}' added successfully." + RESET)
         return tasks
-
-
-
-
 
 def remove_task(tasks):
     display_tasks(tasks)
@@ -356,6 +368,25 @@ def add_category(categories):
     categories.append([next_id, name, description])
     print(f"Category '{name}' added successfully with ID {next_id}.")
     return categories
+def view_tasks_by_day(tasks):
+    """
+    Display tasks for a specific day.
+    """
+    date_str = input("Enter the date (YYYY-MM-DD) to view tasks for that day: ").strip()
+    try:
+        selected_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        print(RED + "Error: Invalid date format. Please enter a date in YYYY-MM-DD format." + RESET)
+        return
+
+    # Filter tasks for the selected date
+    tasks_for_day = [task for task in tasks if task.get("due_date") == date_str]
+
+    if not tasks_for_day:
+        print(GREEN + f"No tasks scheduled for {selected_date}." + RESET)
+    else:
+        print(BLUE + f"Tasks scheduled for {selected_date}:" + RESET)
+        display_tasks(tasks_for_day, show_all=True)
 
 
 def filter_tasks_by_category(tasks, categories):
@@ -510,20 +541,21 @@ def main():
         if tasks:
             print("\nOptions:")
             print("1. View tasks (incomplete tasks only)")
-            print("2. Add task")
-            print("3. Remove task")
-            print("4. Edit task")
-            print("5. Mark task as complete/incomplete")
-            print("6. Filter by category")
-            print("7. Search tasks")
-            print("8. Show only incomplete tasks")
-            print("9. Sort tasks (by due_date/priority/category)")
-            print("10. Show report")
-            print("11. Export tasks")
-            print("12. Archive completed tasks")
-            print("13. Display completed tasks")
-            print("14. Manage categories")
-            print("15. Exit")
+            print("2. View tasks by day")  # Updated to option 2
+            print("3. Add task")
+            print("4. Remove task")
+            print("5. Edit task")
+            print("6. Mark task as complete/incomplete")
+            print("7. Filter by category")
+            print("8. Search tasks")
+            print("9. Show only incomplete tasks")
+            print("10. Sort tasks (by due_date/priority/category)")
+            print("11. Show report")
+            print("12. Export tasks")
+            print("13. Archive completed tasks")
+            print("14. Display completed tasks")
+            print("15. Manage categories")
+            print("16. Exit")
         else:
             print("\nOptions:")
             print("1. Add task")
@@ -546,40 +578,42 @@ def main():
             if choice == "1":
                 display_tasks(tasks, show_all=False)
             elif choice == "2":
+                view_tasks_by_day(tasks)  # Updated to option 2
+            elif choice == "3":
                 tasks = add_task(tasks, categories=categories)  # Pass categories to add_task
                 save_tasks(tasks)
-            elif choice == "3":
+            elif choice == "4":
                 tasks = remove_task(tasks)
                 save_tasks(tasks)
-            elif choice == "4":
+            elif choice == "5":
                 tasks = edit_task(tasks)
                 save_tasks(tasks)
-            elif choice == "5":
+            elif choice == "6":
                 tasks = toggle_task_status(tasks)
                 save_tasks(tasks)
-            elif choice == "6":
-                filter_tasks_by_category(tasks, categories)  # Use the corrected function name
             elif choice == "7":
-                search_tasks(tasks)
+                filter_tasks_by_category(tasks, categories)  # Use the corrected function name
             elif choice == "8":
-                toggle_view_incomplete(tasks)
+                search_tasks(tasks)
             elif choice == "9":
+                toggle_view_incomplete(tasks)
+            elif choice == "10":
                 sort_option = input("Enter sort field (due_date/priority/category): ").strip()
                 display_tasks(tasks, show_all=True, sort_by=sort_option)
-            elif choice == "10":
-                show_report(tasks)
             elif choice == "11":
+                show_report(tasks)
+            elif choice == "12":
                 fmt = input("Enter format (csv/json): ").strip().lower()
                 if fmt == "csv":
                     export_tasks_to_csv(tasks)
                 else:
                     export_tasks_to_json(tasks)
-            elif choice == "12":
+            elif choice == "13":
                 tasks = archive_completed_tasks(tasks)
                 save_tasks(tasks)
-            elif choice == "13":
-                display_completed_tasks(tasks)
             elif choice == "14":
+                display_completed_tasks(tasks)
+            elif choice == "15":
                 # Manage categories
                 print("\nCategory Options:")
                 print("1. View categories")
@@ -591,7 +625,7 @@ def main():
                     categories = add_category(categories)
                 else:
                     print("Invalid option. Returning to main menu.")
-            elif choice == "15":
+            elif choice == "16":
                 print("Exiting To-Do List application. Goodbye!")
                 break
             else:
