@@ -110,37 +110,31 @@ def get_category_name(category_id, categories):
             return category[1]
     return "Unknown"
 
-def display_tasks(tasks, show_all=True, sort_by=None, filter_category=None, search_query=None):
-    filtered = tasks
-    if not show_all:
-        filtered = [t for t in filtered if not t["completed"]]
-    if filter_category:
-        filtered = [t for t in filtered if filter_category in t.get("categories", [])]
-    if search_query:
-        filtered = [t for t in filtered if search_query.lower() in t["title"].lower()]
+def display_tasks(tasks, show_all=True, sort_by=None):
+    filtered = tasks if show_all else [task for task in tasks if not task["completed"]]
 
     if sort_by == "due_date":
-        filtered.sort(key=lambda t: t.get("due_date") or "9999-12-31")
+        filtered.sort(key=lambda t: t.get("due_date", "9999-12-31"))
     elif sort_by == "priority":
-        prio_order = {"High": 1, "Medium": 2, "Low": 3}
-        filtered.sort(key=lambda t: prio_order.get(t.get("priority", "Medium"), 2))
-    elif sort_by == "category":
-        filtered.sort(key=lambda t: (t.get("categories") or ["zzzz"]))
+        priority_order = {"High": 1, "Medium": 2, "Low": 3}
+        filtered.sort(key=lambda t: priority_order.get(t.get("priority", "Medium"), 2))
 
     if not filtered:
         print("No tasks found.")
-    else:
-        print("\nTo-Do List:")
-        for i, task in enumerate(filtered, 1):
-            c = color_for_task(task)
-            status = "[Done]" if task["completed"] else "[ ]"
-            due_str = f" (Due: {task['due_date']})" if task.get("due_date") else ""
-            cat_names = [get_category_name(cat_id, categories) for cat_id in task.get("categories", [])]
-            cat_str = f" (Categories: {', '.join(cat_names)})" if cat_names else ""
-            prio_str = f" (Priority: {task.get('priority', 'Medium')})"
-            recur_str = f" (Recurring: {task.get('recurring')})" if task.get('recurring') else ""
-            title = task["title"]
-            print(f"{c}{i}. {status} {title}{due_str}{prio_str}{cat_str}{recur_str}{RESET}")
+        return
+
+    print("\nTo-Do List:")
+    for i, task in enumerate(filtered, 1):
+        status = "[Done]" if task["completed"] else "[ ]"
+        due_date = f"(Due: {task.get('due_date')})" if task.get("due_date") else ""
+        priority = f"(Priority: {task.get('priority', 'Medium')})"
+        # Display category names based on IDs
+        categories_str = ""
+        if task.get("categories"):
+            category_names = [cat[1] for cat in categories[1:] if cat[0] in task["categories"]]
+            categories_str = f"(Categories: {', '.join(category_names)})"
+        print(f"{i}. {status} {task['title']} {due_date} {priority} {categories_str}")
+
 
 def add_task(tasks, title=None, due_date=None, priority=None, recurring=None, categories=None):
     while True:
@@ -364,8 +358,23 @@ def display_completed_tasks(tasks):
             print(f"{c}{i}. {title}{timestamp}{RESET}")
 
 def search_tasks(tasks):
-    query = input("Enter search query: ").strip()
-    display_tasks(tasks, show_all=True, search_query=query)
+    """
+    Search for tasks by title.
+    """
+    query = input("Enter search query: ").strip().lower()
+    if not query:
+        print("Search query cannot be empty.")
+        return
+
+    # Filter tasks that contain the query in their title
+    matching_tasks = [task for task in tasks if query in task["title"].lower()]
+
+    if not matching_tasks:
+        print(RED + "No tasks match your search query." + RESET)
+    else:
+        print(GREEN + "Search Results:" + RESET)
+        display_tasks(matching_tasks, show_all=True)  # Pass filtered tasks
+
 
 def display_categories(categories):
     print("\nCategories:")
@@ -384,25 +393,33 @@ def add_category(categories):
 
 def filter_tasks_by_multiple_categories(tasks, categories):
     """
-    Filter tasks based on multiple selected categories.
+    Filter tasks by multiple categories.
     """
-    display_categories(categories)  # Display available categories
-    cat_input = input("Enter category IDs to filter by (comma-separated): ").strip()
-    selected_categories = [int(cat_id.strip()) for cat_id in cat_input.split(",") if cat_id.strip().isdigit()]
+    display_categories(categories)  # Show all categories
+    cat_ids_input = input("Enter category IDs (comma separated) to filter tasks: ").strip()
 
-    print("\nFiltered Tasks:")
-    filtered_tasks = []
-    for task in tasks:
-        # Nested loop to check if task's categories match the selected categories
-        for task_cat in task.get("categories", []):
-            if task_cat in selected_categories:
-                filtered_tasks.append(task)
-                break  # Stop checking other categories for this task once a match is found
+    if not cat_ids_input:
+        print("No categories selected. Returning to main menu.")
+        return
+
+    # Parse and validate category IDs
+    try:
+        selected_ids = [int(cat_id.strip()) for cat_id in cat_ids_input.split(",") if cat_id.strip().isdigit()]
+    except ValueError:
+        print("Invalid input. Please enter numeric category IDs only.")
+        return
+
+    # Filter tasks matching any of the selected category IDs
+    filtered_tasks = [
+        task for task in tasks if any(cat_id in task.get("categories", []) for cat_id in selected_ids)
+    ]
 
     if not filtered_tasks:
         print(RED + "No tasks found for the selected categories." + RESET)
     else:
-        display_tasks(filtered_tasks, show_all=True, categories=categories)
+        print(GREEN + "Filtered tasks:" + RESET)
+        display_tasks(filtered_tasks, show_all=True)  # Removed `categories` argument
+
 
 def view_tasks_by_day(tasks):
     """
@@ -422,21 +439,6 @@ def view_tasks_by_day(tasks):
     else:
         print(BLUE + f"Tasks scheduled for {selected_date}:" + RESET)
         display_tasks(tasks_for_day, show_all=True)
-
-
-def filter_tasks_by_category(tasks, categories):
-    display_categories(categories)  # Show all categories
-    cat_id_input = input("Enter the category ID to filter tasks: ").strip()
-    if not cat_id_input.isdigit():
-        print("Invalid category ID. Please enter a numeric value.")
-        return
-    cat_id = int(cat_id_input)
-    filtered_tasks = [task for task in tasks if cat_id in task.get("categories", [])]
-    if not filtered_tasks:
-        print("No tasks found for this category.")
-    else:
-        print(f"\nTasks in Category ID {cat_id}:")
-        display_tasks(filtered_tasks, show_all=True)  # Display filtered tasks
 
 
 
@@ -488,7 +490,7 @@ def print_help():
     print("                 [--recurring INTERVAL] [--category CATEGORY] [--list] [--search QUERY]")
     print("                 [--filter CATEGORY] [--sort SORT_BY] [--report] [--export CSV|JSON]")
     print("\nOptions:")
-    print("  --help               Show this help message")
+    print("  --help               i'm here to help you through the program")
     print("  --add 'Task Title'   Add a task with the given title")
     print("  --due YYYY-MM-DD     Set due date for the added task")
     print("  --priority PRIORITY  Set priority (High, Medium, Low) for the added task")
@@ -504,7 +506,7 @@ def print_help():
     print("\nWithout arguments, interactive mode is used.")
 
 def parse_args(tasks):
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(add_help=False)  # Disable default help to use custom
     parser.add_argument("--help", action="store_true")
     parser.add_argument("--add", type=str, default=None)
     parser.add_argument("--due", type=str, default=None)
@@ -517,6 +519,7 @@ def parse_args(tasks):
     parser.add_argument("--sort", type=str, default=None)
     parser.add_argument("--report", action="store_true")
     parser.add_argument("--export", type=str, default=None)
+
     args = parser.parse_args()
 
     if args.help:
@@ -551,6 +554,7 @@ def parse_args(tasks):
 
     return tasks
 
+
 def main():
     tasks = load_tasks()
     show_overdue_alerts(tasks)
@@ -576,12 +580,12 @@ def main():
         if tasks:
             print("\nOptions:")
             print("1. View tasks (incomplete tasks only)")
-            print("2. View tasks by day")  # Updated to option 2
+            print("2. View tasks by day")
             print("3. Add task")
             print("4. Remove task")
             print("5. Edit task")
             print("6. Mark task as complete/incomplete")
-            print("7. Filter by category")
+            print("7. Filter by multiple categories")
             print("8. Search tasks")
             print("9. Show only incomplete tasks")
             print("10. Sort tasks (by due_date/priority/category)")
@@ -590,20 +594,24 @@ def main():
             print("13. Archive completed tasks")
             print("14. Display completed tasks")
             print("15. Manage categories")
-            print("16. Exit")
+            print("16. Help")  # Added Help option
+            print("17. Exit")
         else:
             print("\nOptions:")
             print("1. Add task")
-            print("2. Exit")
+            print("2. Help")  # Added Help option for no tasks
+            print("3. Exit")
 
         choice = input("\nChoose an option: ").strip()
 
         if not tasks:
             # Limited options when no tasks are present
             if choice == "1":
-                tasks = add_task(tasks, categories=categories)  # Pass categories to add_task
+                tasks = add_task(tasks, categories=categories)
                 save_tasks(tasks)
             elif choice == "2":
+                print_help()  # Show help message
+            elif choice == "3":
                 print("Exiting program. Goodbye!")
                 break
             else:
@@ -613,9 +621,9 @@ def main():
             if choice == "1":
                 display_tasks(tasks, show_all=False)
             elif choice == "2":
-                view_tasks_by_day(tasks)  # Updated to option 2
+                view_tasks_by_day(tasks)
             elif choice == "3":
-                tasks = add_task(tasks, categories=categories)  # Pass categories to add_task
+                tasks = add_task(tasks, categories=categories)
                 save_tasks(tasks)
             elif choice == "4":
                 tasks = remove_task(tasks)
@@ -627,7 +635,7 @@ def main():
                 tasks = toggle_task_status(tasks)
                 save_tasks(tasks)
             elif choice == "7":
-                filter_tasks_by_category(tasks, categories)  # Use the corrected function name
+                filter_tasks_by_multiple_categories(tasks, categories)
             elif choice == "8":
                 search_tasks(tasks)
             elif choice == "9":
@@ -661,10 +669,13 @@ def main():
                 else:
                     print("Invalid option. Returning to main menu.")
             elif choice == "16":
-                print("Exiting To-Do List application. Goodbye!")
+                print_help()  # Show help message
+            elif choice == "17":
+                print("Exiting program. Goodbye!")
                 break
             else:
                 print("Invalid option. Please try again.")
+
 
 
 if __name__ == "__main__":
