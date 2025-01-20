@@ -381,6 +381,29 @@ def add_category(categories):
     categories.append([next_id, name, description])
     print(f"Category '{name}' added successfully with ID {next_id}.")
     return categories
+
+def filter_tasks_by_multiple_categories(tasks, categories):
+    """
+    Filter tasks based on multiple selected categories.
+    """
+    display_categories(categories)  # Display available categories
+    cat_input = input("Enter category IDs to filter by (comma-separated): ").strip()
+    selected_categories = [int(cat_id.strip()) for cat_id in cat_input.split(",") if cat_id.strip().isdigit()]
+
+    print("\nFiltered Tasks:")
+    filtered_tasks = []
+    for task in tasks:
+        # Nested loop to check if task's categories match the selected categories
+        for task_cat in task.get("categories", []):
+            if task_cat in selected_categories:
+                filtered_tasks.append(task)
+                break  # Stop checking other categories for this task once a match is found
+
+    if not filtered_tasks:
+        print(RED + "No tasks found for the selected categories." + RESET)
+    else:
+        display_tasks(filtered_tasks, show_all=True, categories=categories)
+
 def view_tasks_by_day(tasks):
     """
     Display tasks for a specific day.
@@ -391,7 +414,6 @@ def view_tasks_by_day(tasks):
     except ValueError:
         print(RED + "Error: Invalid date format. Please enter a date in YYYY-MM-DD format." + RESET)
         return
-
     # Filter tasks for the selected date
     tasks_for_day = [task for task in tasks if task.get("due_date") == date_str]
 
@@ -647,4 +669,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
