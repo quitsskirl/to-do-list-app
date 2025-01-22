@@ -5,6 +5,7 @@ import datetime
 import shutil
 import argparse
 import csv
+
 START_DATE = datetime.date(2025, 1, 1)
 TODO_FILE = "todo_list.json"
 ARCHIVE_FILE = "archive_list.json"
@@ -483,6 +484,52 @@ def show_overdue_alerts(tasks):
         print(RED + "\nWARNING: You have overdue tasks!" + RESET)
         for t in overdue_tasks:
             print(f"- {t['title']} (Due: {t['due_date']})")
+
+class Task:
+    def __init__(self, title):
+        self.title = title
+        self.status = "Pending"
+
+    def mark_complete(self):
+        self.status = "Completed"
+
+    def __str__(self):
+        return f"{self.title} - {self.status}"
+
+
+class TodoList:
+    def __init__(self):
+        self.tasks = []
+
+    def add_task(self, title):
+        self.tasks.append(Task(title))
+
+    def remove_task(self, title):
+        self.tasks = [task for task in self.tasks if task.title != title]
+
+    def show_tasks(self):
+        for task in self.tasks:
+            print(task)
+
+
+# Example usage
+todo_list = TodoList()
+todo_list.add_task("Buy groceries")
+todo_list.add_task("Study Python")
+
+print("Tasks:")
+todo_list.show_tasks()
+
+todo_list.tasks[0].mark_complete()  # Mark first task as completed
+
+print("\nUpdated Tasks:")
+todo_list.show_tasks()
+
+todo_list.remove_task("Study Python")
+
+print("\nFinal Tasks:")
+todo_list.show_tasks()
+
 
 def print_help():
     print("Usage:")
